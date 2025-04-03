@@ -5,13 +5,22 @@ date: "2025-03-07"
 output: 
   html_document: 
     df_print: kable 
-  pdf_document: default
+    toc: true
+    toc_depth: 2
+    number_sections: true
+  pdf_document: 
+    toc: true
+    toc_depth: 2
+    number_sections: true
+    df_print: kable 
 ---
-
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = FALSE)
 knitr::opts_chunk$set(tibble.print_min = 4, tibble.print_max = 10) 
+
+
+
 
 if(! require("caret")){install.packages("caret")}
 if(! require("tidyverse")){install.packages("tidyverse")}
@@ -35,6 +44,9 @@ if(! require("randomForest")){ install.packages("randomForest")}
 if(! require("gam")){ install.packages("gam")}
 if(! require("pls")){ install.packages("pls")}
 if(! require("car")){ install.packages("car")}
+
+
+if (! require("kableExtra")){ install.packages("kableExtra")}
 
 # MOVING IMPORTS WITH THE REST
 
@@ -69,6 +81,7 @@ library(rpart)
 library(e1071)
 library(pls)
 library(car)
+library(kableExtra)
 
 select <- dplyr::select
 
@@ -93,21 +106,17 @@ contents <- tribble(
 contents
 ```
 
-# 1. Introduction and Preprocessing
+# Introduction and Preprocessing
 
 By analyzing different factors that contribute to student performance, we aim to provide insight into how institutions can improve educational and environmental factors that foster student success. This is an issue that we can relate to directly. As students ourselves, we understand that success in academics is influenced by several factors that include preparation and ability, but go beyond to include factors outside of school.
 
 ```{r, warning=FALSE, include=FALSE}
-# 2.1 Extract Data
 location = "https://raw.githubusercontent.com/BrandonYChan/Statistical-Learning/main/Student_performance_10k.csv"
 
 df <- read_csv(location, show_col_types = FALSE)
 ```
 
-
 ```{r, include=FALSE}
-# 2.2 Clean Data
-
 df2 <- df |>
        rename(
          "has_subsidized_lunch" = "lunch",
@@ -132,15 +141,13 @@ df2$race_ethnicity <- relevel(df2$race_ethnicity, ref="E")
 df2 |> head(2)
 ```
 
-## 1.1 The Student Performance Dataset
+## The Student Performance Dataset
 
-The dataset consists of attributes that may have an impact on performance in school. There are academic variables that include grades in different subjects and other variables like ethnicity, gender, and economic status of the student families. There are options for regression and classification problems with this data. With the given variables, GPA seems like the most likely response variable to represent student performance. After some wrangling, gpa_letter, gpa, and gpa_desirable represent different forms of the possible response variable to predict.   
+The dataset consists of attributes that may have an impact on performance in school. There are academic variables that include grades in different subjects and other variables like ethnicity, gender, and economic status of the student families. There are options for regression and classification problems with this data. With the given variables, GPA seems like the most likely response variable to represent student performance. After some wrangling, gpa_letter, gpa, and gpa_desirable represent different forms of the possible response variable to predict.
 
 We start by cleaning our data; renaming columns for clarity, converting column types, generating attributes, and filtering rows and columns. We filter duplicate rows, and interpolate using column means for missing numerical variables, we fill variables where possible to fix inconsistencies between gpa and gpa_letter, then drop the remaining rows missing key factor variables.
 
 ```{r}
-# 2.3 Interpolate NA values
-
 #Remove Any Duplicates
 df3 <- distinct(df2)
 
@@ -187,13 +194,11 @@ df3 <- df3[complete.cases(df3[c("race_ethnicity", "parent_education", "gpa_desir
 head(df3, 2)
 ```
 
-
-## 1.2 Variable Distributions
+## Variable Distributions
 
 We now want to get more familiar with our data, looking first at the numeric columns, we observe all seem approximately normal, which is to be expected given their nature. We note they all seem to be within acceptable range (0,100). We next analyze the boolean columns, none of which have one boolean option which dominated the data. Notably there seems to be an approximately equal number of males and females, which is a good sign that our sample is proportional to an entire group. Finally we analyze the true factors, education and race, and once again no one factor dominates the data, while factors are not exactly normally distributed, nor should they be, there is healthy variation between rows with no one factor representing too few rows.
 
 ```{r}
-## 2.4 Display Variable Distributions
 
 #Display Numeric
 df_numeric <- df3 |> select(any_of(c("gpa", "recent_math_score", "recent_science_score", "recent_writing_score"))) |> pivot_longer(cols = everything(), names_to = "variable", values_to = "value")
@@ -205,12 +210,11 @@ df_factor <- df3 |> mutate(across(c("has_prepared", "has_subsidized_lunch", "is_
 ggplot(df_factor, aes(x = value)) + geom_bar() + facet_wrap(~ variable, scales = "free") 
 ```
 
-## 1.3 Encoded Data Frame
+## Encoded Data Frame
 
 From here, our next step in processing is to convert our factor variables into one hot notation to be used in predictive models. We modify both parent_education and race, as well as converting boolean factor variables into integers for use in models.
 
 ```{r}
-# 2.5 Format For Classification + Regression
 
 df4 <- df3 |> 
   bind_cols(as.data.frame(model.matrix(~ `race_ethnicity` + `parent_education` - 1, data = df3))) |>
@@ -220,7 +224,7 @@ df4 <- df3 |>
 head(df4, 2)
 ```
 
-## 1.4 Handling Multi-Collinearity
+## Handling Multi-Collinearity
 
 To deal with the multicollinearity problem, we had to remove the reference column for the race_ethnicity variable to get appropriate VIF scores.
 
@@ -232,14 +236,9 @@ vif_scores2 = vif(lm(gpa ~ ., data=df4 |> select(-c("gpa_letter", "gpa_desirable
 data.frame("VIF Original" = head(vif_scores1, 10), "VIF with Dropped Ref." = head(vif_scores2, 10))
 ```
 
-
-```{r. include=FALSE}
-df4<- df4 |> select(-c("race_ethnicityn", "race_ethnicityE"))
-```
-
+`{r. include=FALSE} df4<- df4 |> select(-c("race_ethnicityn", "race_ethnicityE"))`
 
 ```{r, include=FALSE}
-# 2.6 Split Into Train + Test Sets
 
 train_index <- sample(1:nrow(df4), nrow(df4)*0.8)
 
@@ -251,11 +250,11 @@ pca_test <- df_test |> select(-c(gpa, gpa_letter, gpa_desirable))
 
 ```
 
-# 2: Data Exploration with Unsupervised Methods (PCA and Clustering)
+# Data Exploration with Unsupervised Methods (PCA and Clustering)
 
-Before attempting to make any conclusive analysis, we want to get a better understanding of the data and relationships between variables. We start this process with unsupervised learning to understand variables that cause significant variance and groupings of observations. 
+Before attempting to make any conclusive analysis, we want to get a better understanding of the data and relationships between variables. We start this process with unsupervised learning to understand variables that cause significant variance and groupings of observations.
 
-## 2.1 PCA: Generating and Visualizing Principle Components
+## PCA: Generating and Visualizing Principle Components
 
 We begin exploration by generating the principal components to create a 2-dimensional visualization. The first 2 principal components represent uncorrelated linear combinations that capture the most variance in the data. We plot them to see if any patterns emerge.
 
@@ -265,7 +264,6 @@ pc <- prcomp(df_train |> select(-c(gpa, "gpa_desirable","gpa_letter")), scale=TR
 
 pc_test <- prcomp(df_test |> select(-c(gpa, "gpa_desirable","gpa_letter")), scale=TRUE)
 ```
-
 
 ```{r, warning=FALSE, message=FALSE}
 #Highlight Distribution Of TRAIN GPA in PC
@@ -278,11 +276,11 @@ legend("topright", legend = levels(gpa_colors),
 # biplot(pc, scale = 0, cex=0.4) # May find a use for this plot elsewhere
 ```
 
-There appear to be 3 distinct groupings in the data, separable by the second principal component. Based on the GPA letter coloring of points, lower values of the first principal component appear to relate to higher GPA letters and vice-versa. 
+There appear to be 3 distinct groupings in the data, separable by the second principal component. Based on the GPA letter coloring of points, lower values of the first principal component appear to relate to higher GPA letters and vice-versa.
 
-## 2.2 K-means Clustering: Ideal Number of Clusters
+## K-means Clustering: Ideal Number of Clusters
 
-In order to check our theory on the distinct groupings of the first two principal components, we will employ k-means clustering. But first, we need to determine the optimal number of clusters to effectively show potential classes. 
+In order to check our theory on the distinct groupings of the first two principal components, we will employ k-means clustering. But first, we need to determine the optimal number of clusters to effectively show potential classes.
 
 ```{r, warning=FALSE}
 # within_cluster_sum_squares <- c()
@@ -320,7 +318,7 @@ ideal_clusters <- max_k
 
 A peak in the silhouette score appears where there are 4 different clusters, an ideal number where points are similar within a cluster and different from other clusters.
 
-## 2.3 K-Means Clustering on First 2 Principal Components
+## K-Means Clustering on First 2 Principal Components
 
 We color the points on the same principal component graph, this time by the cluster that they belong to.
 
@@ -329,9 +327,9 @@ km <- kmeans(pc$x[,1:2], centers=ideal_clusters, nstart=25)
 plot(pc$x, col = (km$cluster +1), pch=20, cex=2)
 ```
 
-Clusters appear to be clearly separated by both principal components, indicating that our hypothesis that the first component significantly splits the data into groups and academic feature such as grades may impact the second principal component appear plausible. 
+Clusters appear to be clearly separated by both principal components, indicating that our hypothesis that the first component significantly splits the data into groups and academic feature such as grades may impact the second principal component appear plausible.
 
-## 2.4 Impact of Variables on the First Principle Component
+## Impact of Variables on the First Principle Component
 
 We wanted to take a closer look at specific features in addition to the overall structure of the data and principal components. So we took the top ten largest loadings (coefficients) of the first principal component. The goal is determine which variables are responsible for variance within the feature set.
 
@@ -345,7 +343,7 @@ pc1_loading_df |> head(10)
 
 Having a subsidized lunch and staying prepared appear to be the most significant features impacting variance in the data. Although a subsidized lunch has no obvious direct relationship to academics, it appears that socio-economic factors may be at play in some fashion. Taking an extra preparation course also seems to have a significant impact in the feature space. Preparation likely has a direct relationship with academic performance features.
 
-## 2.5 Proportion of Variance Explained (PVE)
+## Proportion of Variance Explained (PVE)
 
 Only the first principal component was analyzed, and other principal components may tell very different stories about which features may be significant. We show how much each additional principal component contributes to the proportion of variance explained:
 
@@ -362,7 +360,7 @@ pve_df |> head(10)
 
 Additional principal components contribute significantly to higher PVE. The first principal component does not contribute to much of the variance explained and the second principal component does not increase it significantly either. We interpret this to mean that there are many notable linear combinations of features rather than a one that significantly explains variance the feature space.
 
-## 2.6 Partial Least Squares Prediction for GPA
+## Partial Least Squares Prediction for GPA
 
 Our analysis on the principal components is predicated on the assumption that they having meaning in relation to evaluating academic performance. We evaluate this by using partial least squares to predict GPA.
 
@@ -383,13 +381,13 @@ data.frame(RMSE = RMSE(pls_pred_regression, df_test$gpa))
 
 We will compare the error with other methods later in the analysis to determine how effective the principal component are at predicting GPA, our measure for academic performance.
 
-# 3: Variable Selection for Supervised Methods
+# Variable Selection for Supervised Methods
 
 Before proceeding to predict GPA with supervised linear methods, we want to ensure that predictor variables used are relevant. It could also be helpful to analyze which predictors contribute to academic success. This will help to determine what factors institutions and individuals can improve to aid in academics.
 
-## 3.1 Evaluating Criterion for Best Subset Selection
+## Evaluating Criterion for Best Subset Selection
 
-Since the dataset is not too large (~10000 rows), we feel that using best-subset selection is computationally feasible and is the optimal method for variable selection. 3 types of evaluation criterion are employed to determine the ideal variables; AIC, BIC, and adjusted R-squared. 
+Since the dataset is not too large (\~10000 rows), we feel that using best-subset selection is computationally feasible and is the optimal method for variable selection. 3 types of evaluation criterion are employed to determine the ideal variables; AIC, BIC, and adjusted R-squared.
 
 ```{r, warning=FALSE, message=FALSE}
 par(mfrow=c(1,3))
@@ -419,9 +417,9 @@ plot(3:n_preds_uncorr, bs_summary$adjr2[3:n_preds_uncorr], type="b", xlab="Numbe
 points(which.max(bs_summary$adjr2), max(bs_summary$adjr2), col="red", cex=2, pch=20)
 ```
 
-The best number of predictors appears different but fairly similar given each criterion. BIC heavily penalizes additional variables, so it is expected to favour a lower number of variables. AIC appears to prefer one more variable and few more variables are favoured with $R^2_{adj}$. 
+The best number of predictors appears different but fairly similar given each criterion. BIC heavily penalizes additional variables, so it is expected to favour a lower number of variables. AIC appears to prefer one more variable and few more variables are favoured with $R^2_{adj}$.
 
-## 3.2 Ideal Number of Variables for Each Criterion
+## Ideal Number of Variables for Each Criterion
 
 ```{r}
 # 4.2 Extracting Key Variables
@@ -431,7 +429,7 @@ tibble(Best_BIC = which.min(bs_summary$bic), Best_Cp = which.min(bs_summary$cp),
 
 Since BIC heavily penalizes extra predictors and adjusted $R^2_{adj}$ appears to be more lenient, we choose to use 6 predictors, a value in the middle.
 
-## 3.3 Names of Ideal Predictors
+## Names of Ideal Predictors
 
 The following variables contribute the most according to best subset selection:
 
@@ -447,8 +445,6 @@ data.frame(ChosenPredictors=chosen_predictors[2:length(chosen_predictors)])
 We update train and test sets to only includes these predictors.
 
 ```{r, include=FALSE}
-# 4.3 Filtering Data Columns
-
 #UPDATING TRAIN + TEST TO ONLY INCLUDE IMPORTANT VARIABLES
 selected_train <- df_train[, c("gpa","gpa_letter", "gpa_desirable", chosen_predictors[2:length(chosen_predictors)])]
 selected_test <- df_test[, c("gpa","gpa_letter", "gpa_desirable",chosen_predictors[2:length(chosen_predictors)])]
@@ -462,13 +458,13 @@ colnames(selected_test) <- gsub("'", "", colnames(selected_test))
 colnames(selected_train)
 ```
 
-# 4 Regression for Identifying Important Predictors of Academic Success
+# Regression for Identifying Important Predictors of Academic Success
 
 With the selected variables, we can now test how well they predict academic performance measured in GPA. We start by training supervised regression models to predict the GPA score.
 
-## 4.1 Choosing the Most Effective Linear Method
+## Choosing the Most Effective Linear Method
 
-The base linear regression model, as well as linear models with LASSO and Ridge regularization are created and compared. 
+The base linear regression model, as well as linear models with LASSO and Ridge regularization are created and compared.
 
 ```{r}
 train_x <- as.matrix(selected_train[, !colnames(selected_train) %in% c("gpa", "gpa_letter", "gpa_desirable")])  
@@ -506,13 +502,13 @@ tribble(~"Loss Type", ~"Unregularised Linear", ~"LASSO", ~"Ridge",
 
 Interestingly, the unregularized model outperforms LASSO and Ridge regression. This may be because we performed regularization after variable selection, so irrelevant predictors were already filtered out. Additional penalties on predictors probably only interfered with making the best predictions that minimize SSE.
 
-## 4.2 Extracting Insight And Evaluating Chosen Linear Method
+## Extracting Insight And Evaluating Chosen Linear Method
 
-Before making conclusive analysis, we want to ensure that the model is predicting accurately on test data. 
+Before making conclusive analysis, we want to ensure that the model is predicting accurately on test data.
 
 ### Accuracy Within 10%
 
-Since the linear regression model only predicts continuous values, it wouldn't make sense to calculate accuracy directly, but we still want to ensure that the model is accurate. We resolve this by predicting how frequently predictions are within 10 points of the true GPA.  
+Since the linear regression model only predicts continuous values, it wouldn't make sense to calculate accuracy directly, but we still want to ensure that the model is accurate. We resolve this by predicting how frequently predictions are within 10 points of the true GPA.
 
 ```{r}
 accuracy_within_10 <- mean(abs(selected_test$gpa -lasso_predictions) < 10)
@@ -538,7 +534,7 @@ coef(linear_model)
 
 Of the encoded variables, gender appears to be the most significant based on the raw coefficient, followed by parent education and preparation. These values suggest that societal factors meaningfully impact academic success, potentially because of different educational opportunities. Pure academic scores appear to contribute similarly to each other. This may be because students successful in one subject tend to be successful overall.
 
-## 4.3 Non-linear Regression: GAM
+## Non-linear Regression: GAM
 
 Although the linear model was successful, but there remains a possibility that prediction is more accurate with non-linear transformations applied to variables. We employ a generalized additive model with splines determined by cross-validation.
 
@@ -583,7 +579,7 @@ preds_best_gam <- best_gam %>%
   predict(selected_test)
 ```
 
-## 4.4 Model Comparison
+## Model Comparison
 
 At this point we have the best supervised linear, non-linear, and unsupervised models. By comparing each of them, we hope to obtain the best one and to understand why it performed the best. Once the model is understood, we will attempt to relate the model to real-world academic performance.
 
@@ -593,16 +589,15 @@ tribble(~Measurement, ~GAM, ~LinearModel, ~PLS,
         "R2", caret::R2(preds_best_gam, selected_test$gpa), caret::R2(linear_preds, selected_test$gpa), caret::R2(pls_pred_regression, df_test$gpa))
 ```
 
-The generalized additive model performs the best in terms of RMSE. Non-linear splines applied to predictors appear to improve the model, indicating that GPA is not best determined by a linear combination of features. The PLS predictions formed by the first 3 principal components perform slightly worse, though not by a drastic margin. Reducing dimensionality or the number of variables seems to help the model in all methods. 
+The generalized additive model performs the best in terms of RMSE. Non-linear splines applied to predictors appear to improve the model, indicating that GPA is not best determined by a linear combination of features. The PLS predictions formed by the first 3 principal components perform slightly worse, though not by a drastic margin. Reducing dimensionality or the number of variables seems to help the model in all methods.
 
 Based on the results of applying regression to predict GPA, societal and educational factors both contribute to academic success.
 
-
-# 5: Linear Classification for Evaluating Predictive Accuracy of GPA Predictors
+# Linear Classification for Evaluating Predictive Accuracy of GPA Predictors
 
 The regression models allowed us show importance within the model of specific variables by analyzing coefficients, but we were unable to compute easily interpretible metrics such as accuracy directly. The purpose of our analysis is to translate our findings to the real world, and we think that a classification perspective will provide more interpretable results. Our goal in this section is to determine whether a linear decision boundary can differentiate between students having a desirable GPA.
 
-## 5.1 LDA Model
+## LDA Model
 
 The first classification method we attempt is linear discriminant analysis. We train it using the same predictors determined by variable selection.
 
@@ -659,7 +654,7 @@ tribble(~Metric, ~Score,
 )
 ```
 
-The LDA model seem pretty strong based on the confusion matrix and metrics. It seems to predict the true class very well, but is not as good at predicting true negatives. This may be due to a class imbalance. 
+The LDA model seem pretty strong based on the confusion matrix and metrics. It seems to predict the true class very well, but is not as good at predicting true negatives. This may be due to a class imbalance.
 
 ```{r, include=FALSE}
 #LDA MODEL EVALUATION:
@@ -675,7 +670,7 @@ predicted_probs <- lda_preds$posterior
 colnames(predicted_probs) <- levels(selected_test$gpa_desirable)
 ```
 
-## 5.3 Logistic Model 
+## Logistic Model
 
 ```{r, include=FALSE}
 log_reg_model <- multinom(gpa_desirable ~ ., data = selected_train |> select(-c("gpa","gpa_letter")))
@@ -715,7 +710,7 @@ tribble(~Metric, ~Score,
 )
 ```
 
-The logistic regression model appears slightly superior to the LDA model at predicting the negative class, but results are fairly similar overall. 
+The logistic regression model appears slightly superior to the LDA model at predicting the negative class, but results are fairly similar overall.
 
 ### Plotting Logistic Regression Model Evaluation
 
@@ -728,15 +723,15 @@ legend("topright", legend = levels(error_colors),
        pch = 20, title = "Reasonable Prediction")
 ```
 
-Based on the high accuracy of the linear classifiers, a linear decision boundary can effectively differentiate between students with a good GPA and a poor GPA. This shows that the predictors are indicative of academic performance and if students are able to improve some of the attributes, they are likely to be more successful in school.     
+Based on the high accuracy of the linear classifiers, a linear decision boundary can effectively differentiate between students with a good GPA and a poor GPA. This shows that the predictors are indicative of academic performance and if students are able to improve some of the attributes, they are likely to be more successful in school.
 
-# 6: Classification Analysis and Visualization with Tree-Based Methods and SVM 
+# Classification Analysis and Visualization with Tree-Based Methods and SVM
 
 We now know that the predictors can effectively distinguish between strong and weak academic performers, but other methods may be more accurate and provide more insight into how predictions are being made.
 
-## 6.1 Decision Tree
+## Decision Tree
 
-The decision tree is particularly useful for our case because it is interpretable, and we want to show what predictive variables are causing students to perform well in school. 
+The decision tree is particularly useful for our case because it is interpretable, and we want to show what predictive variables are causing students to perform well in school.
 
 ```{r, include=FALSE}
 train_input <- selected_train |> select(-gpa, -gpa_letter) 
@@ -751,7 +746,7 @@ rpart.plot(decision_tree, main="Tree for Classifying Strong Academic Performance
 
 The decison tree with splits based on information gain heavily favours academic scores for determining student performance. Among them, it considers math the most significant split with the highest information gain. Many areas of science rely on a strong math background, which could explain why math score is the first split.
 
-## 6.2 Random Forest
+## Random Forest
 
 We follow up the decision tree by training a random forest. Since we are attempting to extract inference rather than maximize predictive accuracy, we do not show evaluation metrics on test data. Instead, we plot variable importance to show which predictive variables strongly considered by the random forest model.
 
@@ -765,9 +760,9 @@ varImpPlot(random_forest_model, main="Random Forest Variable Importance")
 
 The variable importance plot strengthens the hypothesis that decision trees and random forest heavily favour the academic predictor variables.
 
-## 6.3 SVM Kernel Analysis 
+## SVM Kernel Analysis
 
-We apply the kernel trick to train several support vector machines in order to analyze the ideal shape of the decision boundary. 
+We apply the kernel trick to train several support vector machines in order to analyze the ideal shape of the decision boundary.
 
 ```{r, include=FALSE}
 try = seq(1,1 #10
@@ -807,7 +802,7 @@ tribble(~"Kernel.Type", ~"Misclassification",
         "Quadratic", quad_mis)
 ```
 
-The support vector machine with the radial kernel performs the best, followed closely by the linear kernel and distantly by the quadratic kernel. Since both linear and radial kernels perform well, two seemingly contradictory results emerge. The linear decision boundary suggests a simpler relationship between predictor variables to classify academic performers, while the strong performance of the SVM with the radial kernel suggests a more complex one. In the context of academic performance, this may mean that societal and academic predictive factors can be used in a straightforward manner to distinguish strong academic performers, but there are complex relationships between variables that are better separated with a complex decision boundary.     
+The support vector machine with the radial kernel performs the best, followed closely by the linear kernel and distantly by the quadratic kernel. Since both linear and radial kernels perform well, two seemingly contradictory results emerge. The linear decision boundary suggests a simpler relationship between predictor variables to classify academic performers, while the strong performance of the SVM with the radial kernel suggests a more complex one. In the context of academic performance, this may mean that societal and academic predictive factors can be used in a straightforward manner to distinguish strong academic performers, but there are complex relationships between variables that are better separated with a complex decision boundary.
 
 ```{r, include=FALSE}
  error_colors <- as.factor(!lin_preds)
@@ -817,10 +812,9 @@ The support vector machine with the radial kernel performs the best, followed cl
         pch = 20, title = "Reasonable Prediction")
 ```
 
-## 6.4 Deep Learning for Analyzing Specific GPA Scores
+## Deep Learning for Analyzing Specific GPA Scores
 
-From analyzing different classification methods and kernels, we determined that complex relationships exist between predictors of academic success. We also previously identified that strong academic performers can be accurately identified, but specificity tends to be far worse than sensitivity. This leads us to think that certain GPA scores are being misclassified consistently, while others are being classified well. We attempt to verify the claim by creating a deep learning model with softmax activation for multiclass classification output. 
-
+From analyzing different classification methods and kernels, we determined that complex relationships exist between predictors of academic success. We also previously identified that strong academic performers can be accurately identified, but specificity tends to be far worse than sensitivity. This leads us to think that certain GPA scores are being misclassified consistently, while others are being classified well. We attempt to verify the claim by creating a deep learning model with softmax activation for multiclass classification output.
 
 ```{r, include=FALSE}
 X_nn_train <- as.matrix(selected_train |> select(-c("gpa_letter", gpa_desirable, gpa)))
@@ -877,15 +871,16 @@ for(letter in letter_grades){
 
 It appears that the neural networks classifies decent grades (B) very well. The model predicts weak albeit passing grades fairly accurately, but performs much more poorly classifying very good or failing grades. We think this is largely a consequence of the predictors; they are able to identify students with performance at the extremes, either negative or positive. This suggests that students with an A or F GPA distinguish themselves from peers in the same circumstances as themselves. Their individuality sets them on a unique path to achieve either great academic success of failure.
 
-# 8 - Conclusions and Future Research
+# Conclusions and Future Research
 
-## 8.1 Conclusions 
+## Conclusions
+
 -   DOT JOT MEANT TO BE EXPANDED (just my initial ideas -LD)
 -   previous individual subject marks = best indicator (which is best??)
 -   impact of parent education (economic + social impact? perspectives on school)
 -   lunch \~ income range (tends to have less access to resource, or luxury of time)
 
-## 8.2 Future Research
+## Future Research
 
 OPTIONAL????????
 

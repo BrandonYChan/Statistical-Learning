@@ -1,6 +1,6 @@
 ---
 title: "Predicting GPA and Interpreting Results"
-author: "Brandon Chan, Lucas Duncan"
+author: "Brandon Chan, Lucas Duncan, Owen Macgowan"
 date: "2025-03-07"
 output: 
   html_document: 

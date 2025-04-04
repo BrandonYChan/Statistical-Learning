@@ -875,17 +875,20 @@ It appears that the neural networks classifies decent grades (B) very well. The 
 
 ## Conclusions
 
--   DOT JOT MEANT TO BE EXPANDED (just my initial ideas -LD)
--   previous individual subject marks = best indicator (which is best??)
--   impact of parent education (economic + social impact? perspectives on school)
--   lunch \~ income range (tends to have less access to resource, or luxury of time)
+After completing our extensive tests, we found lots of different information that was very interesting. Firstly, we concluded that individual subject marks were identified as the strongest indicators of a student's GPA. To expand on this point, recent scores in common subjects such as math, science, and writing were especially useful in creating a prediction. 
+
+Another interesting point that we discovered was how the socioeconomic status of a family was a critical factor in a student's academic success. We found that students having access to subsidized lunches and parents having access to higher education both had significant correlation with academic performance. Students that had subsidized lunches typically came from lower-income backgrounds, which could result in additional challenges that they face due to limited resources and less educational support outside of school times. 
+
+Lastly, our analysis revealed that relationships among variables predicting GPA are complex. Through our findings, we concluded that non-linear models performed consistently better than linear models when working with our data. This highlights how academic performance cannot be predicted with only linear models, and that each student's academic journey is influenced by diverse and personalized circumstances beyond linear relationships alone.
 
 ## Future Research
 
-OPTIONAL????????
+This project explored how different factors could contribute to student performance. Many more opportunities exist for expanding future research to understand a student's success of comprehensively. 
 
--   DOT JOT MEANT TO BE EXPANDED (just my initial ideas -LD)
--   current emphasis on racial and economic factors + previous success
--   expansion of analysis possible for geographic, ie between schools with varying urban/rural divide,
--   possible opportunity to look at student mental health (IE: psycology, risk behaviours)
--   maybe even something about access to technology, a metric about technical capacity \~ assuming technical skills give indication for success in increasingly technical school, idk, that last bit is a stretch
+One possible research point that could be explored in the future is expanding our analysis of geographic differences. There are possibilities that geographical factors—such as schools being in urban and rural settings—that could affect the academic outcomes of students. Expanding on this analysis could provide insight on potential local challenges or advantages that some communities face.
+
+Another future research topic could be analyzing how technology affects the performance of students. With technology becoming more prevalent in society and in classrooms, examing student access to technology as well as technology proficiency could lead to some interesting insights. If it is found that a higher proficiency in technology leads to more student success, then institutions could look to start implementing more opportunities to expose students to learning with technology.
+
+The last point that could be researched further would be analyzing broader demographic factors of students and their families. Expanding our analysis to observe points like what languages families speak at home could possibly provide further insights on potential new correlations that affect the academic success of students. Analyzing demographic factors more thoroughly could reveal barriers and advantages that affect students that may have otherwise not been discovered. 
+
+Conducting further research to intigrate these additional factors could help further our understanding of what contributes to the academic performance of students. With this deeper knowledge, educational strategies could be designed to better support a diverse student population. 

@@ -1,5 +1,5 @@
 ---
-title: "Predicting GPA and Interpreting Results"
+title: "Understanding Academic Success with Statistical Learning"
 author: "Brandon Chan, Lucas Duncan, Owen Macgowan"
 date: "2025-03-07"
 output: 
@@ -186,8 +186,9 @@ df4 <- df3 |>
   select(-c("race_ethnicity","parent_education")) |>
   transform(has_subsidized_lunch = as.integer(has_subsidized_lunch), has_prepared=as.integer(has_prepared), is_male=as.integer(is_male))
 
-df4 |> select(1:10) |> head(2)
-df4 |> select(11:20) |> head(2)
+df4 |> select(1:7) |> head(2)
+df4 |> select(8:14) |> head(2)
+df4 |> select(14:20) |> head(2)
 ```
 
 ## Handling Multi-Collinearity
@@ -203,13 +204,14 @@ data.frame("VIF Original" = head(vif_scores1, 10), "VIF with Dropped Ref." = hea
 ```
 
 ```{r, include=FALSE}
+
 train_index <- sample(1:nrow(df4), nrow(df4)*0.8)
 
 df_train <- df4[train_index,]
 df_test <- df4[-train_index,]
 
 pca_train <- df_train |> select(-c(gpa, gpa_letter, gpa_desirable))
-pca_test <- df_test |> select(-c(gpa, gpa_letter, gpa_desirable))
+pca_tst <- df_test |> select(-c(gpa, gpa_letter, gpa_desirable))
 ```
 
 # Data Exploration with Unsupervised Methods (PCA and Clustering)
@@ -544,7 +546,7 @@ lda_class <- lda_preds$class
 
 We plot the distribution of LD1 discriminant scores to look for skew or multimodal properties.
 
-```{r, include=TRUE, fig.width=10, fig.height=3}
+```{r, include=TRUE, fig.width=7, fig.height=2}
 df_lda <- data.frame(lda_preds$x, gpa_class=selected_test$gpa_desirable)
 
 df_lda |> 
@@ -557,9 +559,7 @@ There appears to be a multimodal peak representing each class although it is ver
 
 We evaluate the LDA model with a confusion matrix and related metrics.
 
-### Confusion Matrix
-
-```{r, fig.width=5, fig.height=3}
+```{r, fig.width=4, fig.height=2}
 cm_lda <- confusionMatrix(lda_class, selected_test$gpa_desirable)
 
 cm_lda_df <- as.data.frame(cm_lda$table) |> 
@@ -573,8 +573,6 @@ cm_lda_df |>
   labs(title="LDA Confusion Matrix for Desirable GPA")
 
 ```
-
-### Metrics
 
 ```{r}
 # accuracy_lda <- mean(lda_class == selected_test$gpa_desirable)
@@ -617,9 +615,7 @@ log_reg_accuracy <- mean(log_reg_pred_class == selected_test$gpa_desirable)
 
 ```
 
-### Confusion Matrix
-
-```{r, fig.width=5, fig.height=3}
+```{r, fig.width=4, fig.height=2}
 cm_lr <- confusionMatrix(log_reg_pred_class, selected_test$gpa_desirable)
 
 cm_lr_df <- as.data.frame(cm_lr$table) |> 
@@ -630,10 +626,8 @@ cm_lr_df |>
   geom_tile() +
   geom_text(aes(label=Freq), color="white") +
   scale_fill_gradient(low="lightblue", high="darkblue") +
-  labs(title="Logistic Regression Confusion Matrix for Desirable GPA")
+  labs(title="Logistic Regression Confusion Matrix")
 ```
-
-### Metrics
 
 ```{r}
 tribble(~Metric, ~Score,
@@ -792,7 +786,7 @@ for(letter in letter_grades){
 }
 ```
 
-It appears that the neural networks classifies decent grades (B) very well. The model predicts weak albeit passing grades fairly accurately, but performs much more poorly classifying very good or failing grades. We think this is largely a consequence of the predictors; they are able to identify students with performance at the extremes, either negative or positive. This suggests that students with an A or F GPA distinguish themselves from peers in the same circumstances as themselves. Their individuality sets them on a unique path to achieve either great academic success or failure.
+It appears that the neural networks classifies decent grades very well. The model predicts weak albeit passing grades fairly accurately, but performs much more poorly classifying very good or failing grades. We think this is largely a consequence of the predictors; they are able to identify students with performance at the extremes, either negative or positive. This suggests that students with an A or F GPA distinguish themselves from peers in the same circumstances as themselves. Their individuality sets them on a unique path to achieve either great academic success or failure.
 
 # Conclusions and Future Research
 
